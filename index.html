@@ -546,6 +546,31 @@ table.mtbl td.section-hdr:nth-child(1),table.mtbl td.section-hdr:nth-child(2),ta
         </div>
 
         <div class="settings-section">
+          <div class="settings-section-title">スプレッドシート連携（GAS）</div>
+          <div class="settings-row" onclick="showGasSettings()">
+            <div class="settings-row-info">
+              <h3>GAS URL を設定する</h3>
+              <p id="gas-row-status">未設定</p>
+            </div>
+            <span class="settings-row-arrow">›</span>
+          </div>
+          <div class="settings-row" onclick="pullFromGas()">
+            <div class="settings-row-info">
+              <h3>📥 最新データを読み込む</h3>
+              <p>スプレッドシートから記録・点検項目を取得</p>
+            </div>
+            <span class="settings-row-arrow">›</span>
+          </div>
+          <div class="settings-row" onclick="exportAllToGas()">
+            <div class="settings-row-info">
+              <h3>📤 全記録をスプレッドシートへ送信</h3>
+              <p>ローカルの全記録を一括アップロード</p>
+            </div>
+            <span class="settings-row-arrow">›</span>
+          </div>
+        </div>
+
+        <div class="settings-section">
           <div class="settings-section-title">ホーム画面に追加</div>
           <div class="settings-row" id="android-install-row" onclick="triggerInstall()" style="display:none">
             <div class="settings-row-info">
@@ -738,6 +763,31 @@ table.mtbl td.section-hdr:nth-child(1),table.mtbl td.section-hdr:nth-child(2),ta
     </div>
     <button class="field-edit-btn save" onclick="saveGroupName()">✓ 保存</button>
     <button class="field-edit-btn cancel" onclick="closeModal('group-name-modal')">キャンセル</button>
+  </div>
+</div>
+
+<!-- GAS Settings Modal -->
+<div class="modal-overlay" id="gas-settings-modal" onclick="closeModal('gas-settings-modal',event)">
+  <div class="modal-sheet">
+    <div class="modal-title">スプレッドシート連携設定</div>
+    <div style="padding:0 16px 16px">
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px">GAS WebアプリURL</div>
+      <input type="url" id="gas-url-input" placeholder="https://script.google.com/macros/s/..." style="width:100%;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:11px 12px;font-size:13px;color:var(--text);background:var(--gray-100);box-sizing:border-box;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <span id="gas-status-dot" style="width:10px;height:10px;border-radius:50%;background:#ccc;flex-shrink:0"></span>
+        <span id="gas-status-msg" style="font-size:13px;color:var(--text-muted)">未設定</span>
+        <button onclick="testGasConnection()" style="margin-left:auto;font-size:12px;padding:6px 12px;border:1.5px solid var(--blue-mid);border-radius:6px;background:#fff;color:var(--blue-mid);cursor:pointer;font-weight:600">接続テスト</button>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);background:var(--blue-pale);border-radius:8px;padding:10px 12px;margin-bottom:16px;line-height:1.6">
+        💡 GAS URLの取得方法は設定手順書をご確認ください。<br>URLを設定すると保存時に自動送信・読み込みボタンで最新データを取得できます。
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:16px;cursor:pointer">
+        <input type="checkbox" id="gas-auto-pull" style="width:18px;height:18px;cursor:pointer">
+        アプリ起動時に自動で最新データを読み込む
+      </label>
+    </div>
+    <button class="field-edit-btn save" onclick="saveGasSettings()">✓ 保存</button>
+    <button class="field-edit-btn cancel" onclick="closeModal('gas-settings-modal')">キャンセル</button>
   </div>
 </div>
 
@@ -2192,14 +2242,13 @@ function clearAllData() {
 // =========================================================
 //  GAS (Google Apps Script) 連携
 // =========================================================
-const GAS_URL_KEY = 'patrol_gas_url';
+const GAS_URL_KEY      = 'patrol_gas_url';
+const GAS_AUTO_PULL_KEY = 'patrol_gas_auto_pull';
 
-function getGasUrl() {
-  return localStorage.getItem(GAS_URL_KEY) || '';
-}
-function saveGasUrl(url) {
-  localStorage.setItem(GAS_URL_KEY, url.trim());
-}
+function getGasUrl() { return localStorage.getItem(GAS_URL_KEY) || ''; }
+function saveGasUrl(url) { localStorage.setItem(GAS_URL_KEY, url.trim()); }
+function getGasAutoPull() { return localStorage.getItem(GAS_AUTO_PULL_KEY) === '1'; }
+function saveGasAutoPull(v) { localStorage.setItem(GAS_AUTO_PULL_KEY, v ? '1' : '0'); }
 
 // GASへデータ送信（fire-and-forget：失敗してもローカル保存は継続）
 async function syncToGas(payload) {
@@ -2304,16 +2353,72 @@ function updateGasStatus(state) {
 function showGasSettings() {
   const url = getGasUrl();
   document.getElementById('gas-url-input').value = url;
+  document.getElementById('gas-auto-pull').checked = getGasAutoPull();
   updateGasStatus(url ? 'ok' : 'none');
   document.getElementById('gas-settings-modal').classList.add('show');
 }
 
 function saveGasSettings() {
   const url = document.getElementById('gas-url-input').value.trim();
+  const autoPull = document.getElementById('gas-auto-pull').checked;
   saveGasUrl(url);
+  saveGasAutoPull(autoPull);
   closeModal('gas-settings-modal');
   updateGasStatusRow();
   showToast(url ? 'GAS URLを保存しました' : 'GAS URLをクリアしました');
+}
+
+// ── スプレッドシートからデータを読み込む ──────────────────────
+async function pullFromGas() {
+  const url = getGasUrl();
+  if(!url) { showToast('先にGAS URLを設定してください'); showGasSettings(); return; }
+  showToast('📥 最新データを取得中...');
+  try {
+    const res = await fetch(url + '?action=pull', { method: 'GET', mode: 'cors' });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    let updated = [];
+
+    // 記録データの反映
+    if(data.records && typeof data.records === 'object') {
+      const local = getRecords();
+      let count = 0;
+      Object.entries(data.records).forEach(([id, rec]) => {
+        // サーバー側が新しい or ローカルにない場合のみ上書き
+        if(!local[id] || (rec.updatedAt && (!local[id].updatedAt || rec.updatedAt > local[id].updatedAt))) {
+          local[id] = rec;
+          count++;
+        }
+      });
+      if(count > 0) { saveRecords(local); updated.push(`記録${count}件`); }
+    }
+
+    // 点検項目マスタの反映
+    if(data.csv && typeof data.csv === 'string') {
+      const localCsvData = localStorage.getItem(CSV_KEY);
+      const localUpdatedAt = localCsvData ? (JSON.parse(localCsvData).updatedAt || '') : '';
+      if(!localUpdatedAt || (data.csvUpdatedAt && data.csvUpdatedAt > localUpdatedAt)) {
+        if(parseCSV(data.csv)) {
+          const now = new Date().toISOString();
+          localStorage.setItem(CSV_KEY, JSON.stringify({raw: data.csv, updatedAt: data.csvUpdatedAt || now}));
+          updateSettingsTSVStatus(data.csvUpdatedAt || now, allFields.length);
+          updated.push('点検項目');
+        }
+      }
+    }
+
+    if(updated.length) {
+      renderHome();
+      showToast('✓ ' + updated.join('・') + 'を更新しました');
+    } else {
+      showToast('✓ 最新の状態です（更新なし）');
+    }
+    updateGasStatus('ok');
+  } catch(e) {
+    console.warn('pullFromGas error:', e);
+    showToast('読み込みに失敗しました。URLやネット接続を確認してください');
+    updateGasStatus('error');
+  }
 }
 
 function updateGasStatusRow() {
@@ -3009,6 +3114,10 @@ window.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('home-date-display').textContent = fmtDate(new Date());
   // GAS設定ステータス表示
   updateGasStatusRow();
+  // 自動読み込みが有効な場合、起動時にスプレッドシートから取得
+  if(getGasUrl() && getGasAutoPull()) {
+    setTimeout(()=> pullFromGas(), 1200);
+  }
 });
 </script>
 </body>
