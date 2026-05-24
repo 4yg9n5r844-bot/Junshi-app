@@ -58,7 +58,6 @@ body{font-family:-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;font-si
 .home-actions{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
 .home-action-btn{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:18px 16px;cursor:pointer;transition:box-shadow 0.15s;width:100%;text-align:left;}
 .home-action-btn:active{box-shadow:0 2px 8px rgba(0,0,0,0.1);}
-.home-action-info{flex:1;}
 .home-action-info h3{font-size:17px;font-weight:700;margin-bottom:3px;}
 .home-action-info p{font-size:13px;color:var(--text-muted);}
 .home-records-preview{background:var(--blue-pale);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;}
@@ -104,7 +103,7 @@ body{font-family:-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;font-si
 .acc-header.has-alert{background:#fff9f9;}
 .acc-header.done{background:#f4fcf8;}
 .acc-title{flex:1;min-width:0;}
-.acc-name{font-size:16px;font-weight:700;white-space:normal;word-break:break-all;}
+.acc-name{font-size:16px;font-weight:700;white-space:normal;overflow:visible;word-break:break-all;}
 .acc-sub{font-size:12px;color:var(--text-muted);margin-top:1px;}
 .acc-meta{display:flex;align-items:center;gap:8px;flex-shrink:0;}
 .alert-badge{width:22px;height:22px;border-radius:50%;background:var(--red);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;}
@@ -123,7 +122,7 @@ body{font-family:-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;font-si
 /* form items inside accordion */
 .form-item{background:#fff;border-top:1px solid var(--gray-200);padding:12px 16px;}
 .form-item-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;}
-.form-item-name{font-size:16px;font-weight:700;line-height:1.4;flex:1;white-space:normal;word-break:break-all;}
+.form-item-name{font-size:15px;font-weight:600;line-height:1.4;flex:1;white-space:normal;word-break:break-all;}
 .form-item-tag{font-size:11px;color:var(--blue-mid);background:var(--blue-light);padding:2px 7px;border-radius:4px;white-space:nowrap;flex-shrink:0;}
 
 /* range row: label left, bar center, value+unit right — compact */
@@ -197,7 +196,6 @@ table.stats-table td.ok-cell{background:var(--teal-light);}
 .settings-row{padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--gray-200);cursor:pointer;}
 .settings-row:last-child{border-bottom:none;}
 .settings-row:active{background:var(--gray-100);}
-
 .settings-row-info{flex:1;}
 .settings-row-info h3{font-size:16px;font-weight:700;}
 .settings-row-info p{font-size:13px;color:var(--text-muted);margin-top:2px;}
@@ -256,13 +254,7 @@ table.stats-table td.ok-cell{background:var(--teal-light);}
 .picker-sep{width:20px;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text-muted);padding-top:88px;}
 
 /* ── SHARE CARD (settings top) ── */
-.share-card{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,var(--blue-dark),#1a7ad4);color:#fff;border-radius:var(--radius);padding:18px 16px;margin-bottom:16px;cursor:pointer;-webkit-user-select:none;user-select:none;}
-.share-card:active{opacity:0.88;}
-.share-card-icon{font-size:28px;flex-shrink:0;}
-.share-card-text{flex:1;}
-.share-card-title{font-size:16px;font-weight:700;}
-.share-card-sub{font-size:12px;opacity:0.8;margin-top:2px;}
-.share-card-arrow{font-size:22px;opacity:0.7;}
+
 
 /* ── SAVE DEST GRID ── */
 .save-dest-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
@@ -511,7 +503,47 @@ table.mtbl td.section-hdr:nth-child(1),table.mtbl td.section-hdr:nth-child(2),ta
       <div class="settings-wrap">
 
         <div class="settings-section">
+          <div class="settings-section-title">点検項目設定（管理者）</div>
+          <div class="settings-row" onclick="showAdminScreen()">
+            <div class="settings-row-info">
+              <h3>項目を追加・編集する</h3>
+              <p>グループや点検項目をGUI画面で管理します</p>
+            </div>
+            <span class="settings-row-arrow">›</span>
+          </div>
+          <div class="settings-row" onclick="exportMasterCSV()">
+            <div class="settings-row-info">
+              <h3>点検項目をCSVでエクスポート</h3>
+              <p>現在の点検項目設定をファイルに保存</p>
+            </div>
+            <span class="settings-row-arrow">›</span>
+          </div>
+          <div class="settings-row" onclick="document.getElementById('csv-import').click()">
+            <div class="settings-row-info">
+              <h3>CSVファイルをインポート</h3>
+              <p>点検項目マスタを更新します（管理者のみ）</p>
+            </div>
+            <span class="settings-row-arrow">›</span>
+            <input type="file" id="csv-import" accept=".csv" style="display:none" onchange="importCSV(this)">
+          </div>
+          <div class="settings-row" id="tsv-status-row">
+            <div class="settings-row-info">
+              <h3 id="tsv-item-count">項目読み込み済</h3>
+              <p id="tsv-updated-at">更新日時: --</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
           <div class="settings-section-title">データ管理</div>
+          <div class="settings-row" onclick="clearAllData()">
+            <div class="settings-row-info">
+              <h3 class="settings-danger">全記録データを削除</h3>
+              <p>記録履歴をすべて消去します（点検項目は残ります）</p>
+            </div>
+            <span class="settings-row-arrow">›</span>
+          </div>
+        </div>
 
         <div class="settings-section">
           <div class="settings-section-title">ホーム画面に追加</div>
@@ -609,98 +641,6 @@ table.mtbl td.section-hdr:nth-child(1),table.mtbl td.section-hdr:nth-child(2),ta
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     配布・共有モーダル
-══════════════════════════════════════ -->
-<div class="modal-overlay" id="share-modal" onclick="closeModal('share-modal',event)">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-title">📲 配布・共有</div>
-
-    <!-- タブ -->
-    <div class="share-tabs">
-      <button class="share-tab active" id="tab-qr" onclick="switchShareTab('qr')">QRコード</button>
-      <button class="share-tab" id="tab-file" onclick="switchShareTab('file')">ファイル共有</button>
-      <button class="share-tab" id="tab-guide" onclick="switchShareTab('guide')">使い方ガイド</button>
-    </div>
-
-    <!-- QR タブ -->
-    <div class="share-tab-content" id="sharetab-qr">
-      <div style="text-align:center;padding:16px 0 8px">
-        <div style="display:inline-block;background:#fff;border:1px solid var(--border);border-radius:16px;padding:12px">
-          <div id="qr-render-wrap" style="width:180px;height:180px;display:flex;align-items:center;justify-content:center">
-            <canvas id="share-qr-canvas" width="180" height="180"></canvas>
-          </div>
-        </div>
-        <p style="font-size:12px;color:var(--text-muted);margin-top:10px">カメラで読み取るとアプリが開きます</p>
-      </div>
-      <div style="background:var(--gray-100);border-radius:var(--radius-sm);padding:10px 12px;display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <div id="share-url-text" style="font-size:11px;color:var(--text-muted);flex:1;word-break:break-all;line-height:1.5"></div>
-        <button onclick="copyShareUrl()" style="flex-shrink:0;background:var(--blue-dark);color:#fff;border:none;border-radius:6px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer">コピー</button>
-      </div>
-      <button onclick="shareApp()" class="share-action-btn" style="background:var(--blue-dark)">
-        <span style="font-size:20px">📤</span>
-        <div style="text-align:left">
-          <div style="font-weight:600">URLをアプリで共有</div>
-          <div style="font-size:11px;opacity:0.8">LINE・メール・AirDrop・Slackなど</div>
-        </div>
-      </button>
-    </div>
-
-    <!-- ファイル共有 タブ -->
-    <div class="share-tab-content" id="sharetab-file" style="display:none">
-      <div style="background:var(--blue-pale);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--blue-mid);line-height:1.7">
-        💡 HTMLファイル1つを渡すだけでアプリが使えます。<br>インターネット不要・インストール不要です。
-      </div>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <button onclick="shareAppFile()" class="share-action-btn" style="background:var(--teal)">
-          <span style="font-size:22px">📤</span>
-          <div style="text-align:left">
-            <div style="font-weight:600">HTMLファイルを共有</div>
-            <div style="font-size:11px;opacity:0.8">LINE・メール・AirDrop・Drive・iCloudへ送信</div>
-          </div>
-        </button>
-        <button onclick="downloadAppFile()" class="share-action-btn" style="background:var(--blue-mid)">
-          <span style="font-size:22px">⬇️</span>
-          <div style="text-align:left">
-            <div style="font-weight:600">HTMLファイルをダウンロード</div>
-            <div style="font-size:11px;opacity:0.8">端末のダウンロードフォルダに保存</div>
-          </div>
-        </button>
-      </div>
-      <div style="margin-top:14px;background:#fff8e1;border-radius:var(--radius-sm);padding:12px 14px;font-size:12px;color:var(--amber);line-height:1.7">
-        ⚠ ファイルを開いた端末ごとにデータが保存されます。<br>記録を集約したい場合はExcel出力で共有してください。
-      </div>
-    </div>
-
-    <!-- 使い方ガイド タブ -->
-    <div class="share-tab-content" id="sharetab-guide" style="display:none">
-      <div class="guide-section">
-        <div class="guide-os-badge ios">🍎 iOS（iPhone / iPad）</div>
-        <div class="guide-steps">
-          <div class="guide-step"><span class="guide-num">1</span><span>Safariでアプリを開く（Chromeは❌）</span></div>
-          <div class="guide-step"><span class="guide-num">2</span><span>画面下部の <strong>□↑ 共有ボタン</strong> をタップ</span></div>
-          <div class="guide-step"><span class="guide-num">3</span><span>「<strong>ホーム画面に追加</strong>」を選択</span></div>
-          <div class="guide-step"><span class="guide-num">4</span><span>右上「追加」をタップして完了 ✅</span></div>
-        </div>
-        <button onclick="showInstallGuide('ios')" style="width:100%;margin-top:8px;background:var(--gray-200);border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;cursor:pointer">詳しい手順を見る</button>
-      </div>
-      <div class="guide-section" style="margin-top:12px">
-        <div class="guide-os-badge android">🤖 Android（Chrome）</div>
-        <div class="guide-steps">
-          <div class="guide-step"><span class="guide-num">1</span><span>ChromeでアプリのURLを開く</span></div>
-          <div class="guide-step"><span class="guide-num">2</span><span>右上 <strong>⋮ メニュー</strong> をタップ</span></div>
-          <div class="guide-step"><span class="guide-num">3</span><span>「<strong>アプリをインストール</strong>」または<br>「<strong>ホーム画面に追加</strong>」を選択</span></div>
-          <div class="guide-step"><span class="guide-num">4</span><span>「インストール」をタップして完了 ✅</span></div>
-        </div>
-        <button id="android-install-row2" onclick="triggerInstall()" style="width:100%;margin-top:8px;background:var(--blue-dark);color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;display:none">📱 今すぐホーム画面に追加</button>
-      </div>
-    </div>
-
-    <button class="modal-close" onclick="closeModal('share-modal')">閉じる</button>
-  </div>
-</div>
-
 <!-- インストールガイドモーダル -->
 <div class="modal-overlay" id="install-modal" onclick="closeModal('install-modal',event)">
   <div class="modal-sheet" id="install-modal-content"></div>
@@ -740,36 +680,6 @@ table.mtbl td.section-hdr:nth-child(1),table.mtbl td.section-hdr:nth-child(2),ta
 
 <!-- 印刷用DOM（画面には表示されない） -->
 <div id="print-root"></div>
-
-<!-- GAS設定モーダル -->
-<div class="modal-overlay" id="gas-settings-modal" onclick="closeModal('gas-settings-modal',event)">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-title">📊 Google スプレッドシート連携</div>
-
-    <div style="background:var(--blue-pale);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--blue-mid);line-height:1.8">
-      💡 Google Apps Script（GAS）のWebアプリURLを入力すると、<br>
-      記録を保存するたびにスプレッドシートへ自動送信されます。<br>
-      設定方法は設定画面の「セットアップ手順」を参照してください。
-    </div>
-
-    <div style="margin-bottom:12px">
-      <div class="field-edit-label">GAS WebアプリURL</div>
-      <input class="field-edit-input" id="gas-url-input" type="url"
-        placeholder="https://script.google.com/macros/s/..."
-        style="font-size:12px">
-    </div>
-
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;padding:8px 12px;background:var(--gray-100);border-radius:var(--radius-sm)">
-      <div id="gas-status-dot" style="width:10px;height:10px;border-radius:50%;background:#ccc;flex-shrink:0"></div>
-      <span id="gas-status-msg" style="font-size:13px;color:var(--text-muted)">未設定</span>
-      <button onclick="testGasConnection()" style="margin-left:auto;background:var(--blue-mid);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer">接続テスト</button>
-    </div>
-
-    <button class="field-edit-btn save" onclick="saveGasSettings()">✓ 保存</button>
-    <button class="field-edit-btn cancel" onclick="closeModal('gas-settings-modal')">キャンセル</button>
-  </div>
-</div>
 
 <!-- フィールド編集モーダル -->
 <div class="modal-overlay" id="field-edit-modal" onclick="closeModal('field-edit-modal',event)">
@@ -1547,8 +1457,6 @@ function groupStats(g, answersObj) {
 // =========================================================
 //  LIST RENDER
 // =========================================================
-const GROUP_ICONS=['🏭','⚙️','🔧','💧','🌡️','⚡','🔩','📡','🛢️','🌀','🔬','🏗️'];
-function groupIcon(i){ return GROUP_ICONS[i%GROUP_ICONS.length]; }
 
 function renderList(answersObj) {
   const records = getRecords();
@@ -1572,8 +1480,8 @@ function renderList(answersObj) {
     return `<div class="group-card ${alerts?'has-alert':''} ${done}" onclick="openGroup(${gi})">
       <div class="group-card-inner">
         <div class="group-info">
-          <div class="group-name" style="font-size:17px;font-weight:700;word-break:break-all;">${g.name}</div>
-          <div class="group-sub" style="font-size:13px;">${filled}/${total} 項目入力</div>
+          <div class="group-name">${g.name}</div>
+          <div class="group-sub">${filled}/${total} 項目入力</div>
         </div>
         <div class="group-meta">
           ${alerts?`<div class="alert-badge">${alerts}</div>`:''}
