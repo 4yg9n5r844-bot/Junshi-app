@@ -1065,7 +1065,20 @@ function importCSV(input) {
   const file = input.files[0];
   if(!file) return;
   const tryDecode = (buf) => {
+    const bytes = new Uint8Array(buf);
+    // BOM付きUTF-8 (EF BB BF) を最優先で判定
+    if(bytes[0]===0xEF && bytes[1]===0xBB && bytes[2]===0xBF) {
+      try { return new TextDecoder('utf-8').decode(buf); } catch(e){}
+    }
+    // UTF-8 BOMなし：有効なUTF-8か検証してから使用
+    try {
+      const decoded = new TextDecoder('utf-8', {fatal:true}).decode(buf);
+      // 日本語文字が含まれていれば UTF-8 と判断
+      if(/[\u3000-\u9FFF\uFF00-\uFFEF]/.test(decoded)) return decoded;
+    } catch(e){}
+    // Shift-JIS フォールバック
     try { return new TextDecoder('shift-jis').decode(buf); } catch(e){}
+    // 最終フォールバック：UTF-8（BOMなし・非厳格）
     try { return new TextDecoder('utf-8').decode(buf); } catch(e){}
     return '';
   };
