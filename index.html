@@ -1065,6 +1065,7 @@ function importCSV(input) {
   const file = input.files[0];
   if(!file) return;
   const stripBOM = (s) => (s && s.charCodeAt(0) === 0xFEFF) ? s.slice(1) : s;
+  const hasJP = (s) => /[\u3000-\u9FFF\uFF00-\uFFEF\u30A0-\u30FF\u3040-\u309F]/.test(s);
 
   const applyCSV = (text) => {
     if(!parseCSV(text)) { showToast('データを読み取れませんでした'); return; }
@@ -1075,43 +1076,41 @@ function importCSV(input) {
     input.value = '';
   };
 
-  // ── Step1: readAsText(utf-8) で試みる（iOS/Android Safari で最も安定）
-  const r1 = new FileReader();
-  r1.onload = e => {
-    const text = stripBOM(e.target.result || '');
-    // UTF-8として正常に日本語が読めたか確認
-    if(text && /[\u3000-\u9FFF\uFF00-\uFFEF\u30A0-\u30FF\u3040-\u309F]/.test(text)) {
-      applyCSV(text);
-      return;
+  const r = new FileReader();
+  r.onload = e => {
+    const buf = e.target.result;
+    const bytes = new Uint8Array(buf);
+
+    // ① BOM付きUTF-8（EF BB BF）→ UTF-8確定
+    if(bytes[0]===0xEF && bytes[1]===0xBB && bytes[2]===0xBF) {
+      try {
+        const t = stripBOM(new TextDecoder('utf-8').decode(buf));
+        if(t) { applyCSV(t); return; }
+      } catch(ex){}
     }
-    // ── Step2: UTF-8で日本語が読めなかった → Shift-JIS としてArrayBufferで再読み込み
-    const r2 = new FileReader();
-    r2.onload = e2 => {
-      const buf = e2.target.result;
-      const bytes = new Uint8Array(buf);
-      // BOM付きUTF-8を再チェック（念のため）
-      if(bytes[0]===0xEF && bytes[1]===0xBB && bytes[2]===0xBF) {
-        try { applyCSV(stripBOM(new TextDecoder('utf-8').decode(buf))); return; } catch(ex){}
-      }
-      // Shift-JIS で試みる（shift_jis / shift-jis 両エイリアスに対応）
-      for(const enc of ['shift-jis','shift_jis','sjis','windows-31j']) {
-        try {
-          const decoded = new TextDecoder(enc).decode(buf);
-          if(/[\u3000-\u9FFF\uFF00-\uFFEF\u30A0-\u30FF\u3040-\u309F]/.test(decoded)) {
-            applyCSV(stripBOM(decoded)); return;
-          }
-        } catch(ex){}
-      }
-      // 最終フォールバック：UTF-8で強制デコード
-      try { applyCSV(stripBOM(new TextDecoder('utf-8').decode(buf))); } catch(ex) {
-        showToast('データを読み取れませんでした');
-      }
-    };
-    r2.onerror = () => showToast('ファイルを読み込めませんでした');
-    r2.readAsArrayBuffer(file);
+
+    // ② BOMなし → UTF-8(strict)で試みる
+    try {
+      const t = new TextDecoder('utf-8', {fatal: true}).decode(buf);
+      if(hasJP(t)) { applyCSV(stripBOM(t)); return; }
+    } catch(ex){/* UTF-8でないのでShift-JISへ */}
+
+    // ③ Shift-JIS（iOS SafariはTextDecoder('shift-jis')未対応の場合あり）
+    //    windows-31j はiOS/Android両方で確実にサポート
+    for(const enc of ['windows-31j', 'shift_jis', 'shift-jis']) {
+      try {
+        const td = new TextDecoder(enc);
+        const t = stripBOM(td.decode(buf));
+        if(hasJP(t)) { applyCSV(t); return; }
+      } catch(ex){}
+    }
+
+    // ④ 最終フォールバック：UTF-8（非strictで強制デコード）
+    try { applyCSV(stripBOM(new TextDecoder('utf-8').decode(buf))); return; } catch(ex){}
+    showToast('ファイルを読み込めませんでした');
   };
-  r1.onerror = () => showToast('ファイルを読み込めませんでした');
-  r1.readAsText(file, 'utf-8');
+  r.onerror = () => showToast('ファイルを読み込めませんでした');
+  r.readAsArrayBuffer(file);
 }
 
 function updateSettingsTSVStatus(updatedAt, count) {
