@@ -1335,14 +1335,20 @@ function buildTimePicker() {
     updateSelected(minsEl,  curM);
   };
   // show クラスが付いた後に実行されるよう少し遅らせる
-  setTimeout(setPos, 80);
+  setTimeout(setPos, 200);
 }
 
 function getPickerTime() {
   const hoursEl = document.getElementById('picker-hours');
-  const minsEl = document.getElementById('picker-mins');
-  const h = Math.min(23, Math.max(0, Math.round(hoursEl.scrollTop / 44)));
-  const m = Math.min(59, Math.max(0, Math.round(minsEl.scrollTop / 44)));
+  const minsEl  = document.getElementById('picker-mins');
+  // まずスクロール位置から取得、0の場合はselected要素を優先参照
+  let h = Math.min(23, Math.max(0, Math.round(hoursEl.scrollTop / 44)));
+  let m = Math.min(59, Math.max(0, Math.round(minsEl.scrollTop  / 44)));
+  // scrollTopが0かつselectedアイテムが存在する場合はそちらを使用
+  const selH = hoursEl.querySelector('.picker-item.selected');
+  const selM = minsEl.querySelector('.picker-item.selected');
+  if(hoursEl.scrollTop === 0 && selH) h = parseInt(selH.dataset.val) || 0;
+  if(minsEl.scrollTop  === 0 && selM) m = parseInt(selM.dataset.val) || 0;
   return {h, m};
 }
 
@@ -1930,6 +1936,11 @@ function buildWorkbook(startStr, endStr) {
   return wb;
 }
 
+
+// 点検入力画面からのExcel出力（モーダルを開く）
+function exportExcel() {
+  showExportModal();
+}
 async function doExportExcel() {
   const startStr = document.getElementById('export-start').value;
   const endStr   = document.getElementById('export-end').value;
